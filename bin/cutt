@@ -17,7 +17,23 @@ end
 def get_future_events(cal)
   cal.conn.find_events(:start => Time::now.to_s, :end => '4000-01-01')
 end
-  
+
+# our own formatting for datetime strings
+class DateTime
+  def to_s_cutt
+    s = to_s.split('+')[0]
+    s.sub!('T', ' ') # replace T with space
+    s.sub!(/:00$/, '') # remove trailing seconds if :00
+    return s
+  end
+end
+
+class Date
+  def to_s_cutt
+    to_s
+  end
+end
+
 def list_events(calendars)
   events = []
   calendars.each_pair do |name, cal|
@@ -28,9 +44,9 @@ def list_events(calendars)
   events.sort! { |a, b| a[1].start <=> b[1].start }
   events.delete_if { |ev| ev[1].end < Time::now.to_datetime } # in the past
   calwidth = events.map { |ev| ev[0].length }.max
-  timewidth = events.map { |ev| ev[1].start.to_s.length }.max
+  timewidth = events.map { |ev| ev[1].start.to_s_cutt.length }.max
   events.each do |ev|
-    s = "%-#{calwidth}s %-#{timewidth}s %s" % [ev[0], ev[1].start, ev[1].summary]
+    s = "%-#{calwidth}s %-#{timewidth}s %s" % [ev[0], ev[1].start.to_s_cutt, ev[1].summary]
     if ev[1].location
       s += " @ #{ev[1].location}"
     end
