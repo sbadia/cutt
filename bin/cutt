@@ -1,0 +1,41 @@
+#!/usr/bin/ruby
+
+# FIXME: needs refactoring. Especially, needs a Calendar object.
+
+require 'agcaldav'
+require 'json'
+require 'pp'
+
+$config = JSON::load(IO::read(Dir.home + '/.cutt.json'))
+$config = OpenStruct::new($config)
+$config.calendars.each_pair do |k, v|
+  c = OpenStruct::new(v)
+  c.conn = AgCalDAV::Client.new(:uri => c.uri, :user => c.user, :password => c.password)
+  $config.calendars[k] = c
+end
+
+def get_future_events(cal)
+  cal.conn.find_events(:start => Time::now.to_s, :end => '4000-01-01')
+end
+  
+def list_events(calendars)
+  events = []
+  calendars.each_pair do |name, cal|
+    get_future_events(cal).each do |ev|
+      events << [name, ev ]
+    end
+  end
+  events.sort! { |a, b| a[1].start <=> b[1].start }
+  events.delete_if { |ev| ev[1].end < Time::now.to_datetime } # in the past
+  calwidth = events.map { |ev| ev[0].length }.max
+  timewidth = events.map { |ev| ev[1].start.to_s.length }.max
+  events.each do |ev|
+    s = "%-#{calwidth}s %-#{timewidth}s %s" % [ev[0], ev[1].start, ev[1].summary]
+    if ev[1].location
+      s += " @ #{ev[1].location}"
+    end
+    puts s
+  end
+end
+
+list_events($config.calendars)
