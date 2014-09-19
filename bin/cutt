@@ -10,8 +10,13 @@ $config = JSON::load(IO::read(Dir.home + '/.cutt.json'))
 $config = OpenStruct::new($config)
 $config.calendars.each_pair do |k, v|
   c = OpenStruct::new(v)
-  c.conn = AgCalDAV::Client.new(:uri => c.uri, :user => c.user, :password => c.password)
   $config.calendars[k] = c
+end
+
+def connect_all_calendars
+  $config.calendars.each_pair do |k, c|
+    c.conn = AgCalDAV::Client.new(:uri => c.uri, :user => c.user, :password => c.password)
+  end
 end
 
 def get_future_events(cal)
@@ -35,6 +40,7 @@ class Date
 end
 
 def list_events(calendars)
+  connect_all_calendars
   events = []
   calendars.each_pair do |name, cal|
     get_future_events(cal).each do |ev|
@@ -62,4 +68,53 @@ def list_events(calendars)
   end
 end
 
-list_events($config.calendars)
+class TimeParser
+  TOKENS = {
+    "m" => (60),
+    "h" => (60 * 60),
+    "d" => (60 * 60 * 24)
+  }
+
+  attr_reader :time
+
+  def initialize(input)
+    @input = input
+    @time = 0
+    parse
+  end
+
+  def parse
+    @input.scan(/(\d+)(\w)/).each do |amount, measure|
+      @time += amount.to_i * TOKENS[measure]
+    end
+  end
+end
+
+def add_event
+  defcal = $config.calendars.keys.first
+  print "Calendars (#{$config.calendars.keys.join(',')}) [#{defcal}]: "
+  cal = STDIN.gets.chomp
+  if cal == ""
+    cal = defcal
+  end
+  raise "calendar not found" if not $config.calendars.keys.include?(cal)
+  system("ncal -M3b")
+  print "Date and time: "
+  t = Time::parse(STDIN.gets.chomp)
+  puts "Date and time selected: #{t}"
+  print "Duration (dhm supported): "
+  dur = TimeParser::new(STDIN.gets.chomp).time
+  endt = t + dur
+  puts "End: : #{endt}"
+  print "Name: "
+  name = STDIN.gets.chomp
+  c = $config.calendars[cal]
+  c.conn = AgCalDAV::Client.new(:uri => c.uri, :user => c.user, :password => c.password)
+  c.conn.create_event(:start => t.to_s, :end => endt.to_s, :title => name)
+end
+
+if ARGV[0] == 'add'
+  add_event
+else
+  list_events($config.calendars)
+end
