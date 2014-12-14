@@ -9,7 +9,11 @@ the future) to manipulate CalDav calendars.
 
 Using it
 --------
-1. Create a ~/.cutt.json file. Example:
+1. Create a ~/.cutt.json file.
+
+Example:
+
+```json
 	{
 	  "calendars": {
 	    "calendar1": {
@@ -24,8 +28,9 @@ Using it
 	    }
 	  }
 	}
+```
 
-2. Run 'cutt' (that's pretty much everything that works currently).
+2. Run `cutt` (that's pretty much everything that works currently).
 
 Goals for version 1.0
 ---------------------
@@ -35,8 +40,10 @@ Goals for version 1.0
 Contributing
 ------------
 You need:
+
 - Ruby
 - the agcaldav library
+
 Debian packages for agcaldav and its dependencies are available
 at http://blop.info/p/20140316-cutt-devkit.tgz (proper Debian
 packages are on the TO-DO list)
